@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="description" content="Visual Instruction Tuning">
+  <meta name="keywords" content="multimodal chatbot">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LLaVA</title>
+
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans|Castoro">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.1/css/bulma.min.css">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/jpswalsh/academicons@1/css/academicons.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
+  <link rel="stylesheet" href="./static/css/index.css">
+  <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/954/954591.png">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/js/all.min.js"></script>
+  <script type="module" src="https://gradio.s3-us-west-2.amazonaws.com/3.27.0/gradio.js"></script>
+</head>
+
+<style>
+  .expandable-card .card-text-container {
+    max-height: 200px;
+    overflow-y: hidden;
+    position: relative;
+  }
+
+  .expandable-card.expanded .card-text-container {
+    max-height: none;
+  }
+
+  .expand-btn {
+    position: relative;
+    display: none;
+    background-color: rgba(255, 255, 255, 0.8);
+    /* margin-top: -20px; */
+    /* justify-content: center; */
+    color: #510c75;
+    border-color: transparent;
+  }
+
+  .expand-btn:hover {
+    background-color: rgba(200, 200, 200, 0.8);
+    text-decoration: none;
+    border-color: transparent;
+    color: #510c75;
+  }
+
+  .expand-btn:focus {
+    outline: none;
+    text-decoration: none;
+  }
+
+  .expandable-card:not(.expanded) .card-text-container:after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 90px;
+    background: linear-gradient(rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 1));
+  }
+
+  .expandable-card:not(.expanded) .expand-btn {
+    margin-top: -40px;
+  }
+
+  .card-body {
+    padding-bottom: 5px;
+  }
+
+  .vertical-flex-layout {
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .figure-img {
+    max-width: 100%;
+    height: auto;
+  }
+
+  .adjustable-font-size {
+    font-size: calc(0.5rem + 2vw);
+  }
+
+  .chat-history {
+    flex-grow: 1;
+    overflow-y: auto;
+    /* overflow-x: hidden; */
+    padding: 5px;
+    border-bottom: 1px solid #ccc;
+    margin-bottom: 10px;
+  }
+
+  #gradio pre {
+    background-color: transparent;
+  }
+</style>
+
+<body>
+
+
+  <section class="hero">
+    <div class="hero-body">
+      <div class="container is-max-desktop">
+        <div class="columns is-centered">
+          <div class="column has-text-centered">
+            <h2 class="title is-2 publication-title">Fine-Tuned Multimodal Language Models Are <br> High-Quality Image-Text Data Filters</h2>
+            <br>
+            <div class="is-size-5 publication-authors">
+              <span class="author-block">
+                <a href="https://victorwz.github.io/" style="color:#f68946;font-weight:normal;">Weizhi Wang</a><b style="color:#f68946; font-weight:normal"><sup>1</sup></b>,
+              </span>
+              <span class="author-block">
+                <a href="https://khalilmrini.github.io/">Khalil Mirini</a><b style="color:#F2A900; font-weight:normal"><sup>2</sup></b>,
+              </span>
+              <span class="author-block">
+                <a href="https://sites.google.com/site/linjieyang89/">Linjie Yang</a><b style="color:#F2A900; font-weight:normal"><sup>2</sup></b>,
+              </span>
+              <span class="author-block">
+                <a href="https://sateeshkumar21.github.io/">Sateesh Kumar</a><b style="color:#F2A900; font-weight:normal"><sup>2</sup></b>,
+              </span>
+              <span class="author-block">
+                <a href="https://scholar.google.com/citations?user=DxPjkDoAAAAJ&hl=en" style="color:#F2A900;font-weight:normal;">Yu Tian</a>,
+              </span>
+              <span class="author-block">
+                <a href="https://xyan.cs.ucsb.edu/">Xifeng Yan</a><b style="color:#f68946; font-weight:normal"><sup>1</sup></b>,
+              </span>
+              <span class="author-block">
+                <a href="https://hengcv.github.io/">Heng Wang</a><b style="color:#F2A900; font-weight:normal"><sup>2</sup></b>
+              </span>
+            </div>
+            <br>
+            <div class="is-size-5 publication-authors">
+              <span class="author-block"><b style="color:#f68946; font-weight:normal"><sup>1</sup> </b>UCSB&nbsp&nbsp</b></span> 
+              <span class="author-block"><b style="color:#F2A900; font-weight:normal"><sup>2</sup> </b>Bytedance US</span>
+            </div>
+            
+          <!-- <div class="column has-text-centered">
+            <h3 class="title is-3 publication-title">Improved Baselines with Visual Instruction Fine-tuning</h3>
+            <div class="is-size-5 publication-authors">
+              <span class="author-block">
+                <a href="https://hliu.cc/" style="color:#f68946;font-weight:normal;">Haotian Liu<sup>*</sup></a>,
+              </span>
+              <span class="author-block">
+                <a href="https://chunyuan.li/" style="color:#008AD7;font-weight:normal;">Chunyuan Li<sup>*</sup></a>,
+              </span>
+              <span class="author-block">
+                <a href="https://yuheng-li.github.io" style="color:#008AD7;font-weight:normal;">Yuheng Li</a>,
+              </span>
+              <span class="author-block">
+                <a href="https://pages.cs.wisc.edu/~yongjaelee/" style="color:#f68946;font-weight:normal;">Yong Jae
+                  Lee</a>
+              </span>
+            </div>
+
+            <div class="is-size-5 publication-authors">
+              <span class="author-block"><b style="color:#f68946; font-weight:normal">&#x25B6 </b> University of
+                Wisconsin-Madison</b></span>
+              <span class="author-block"><b style="color:#008AD7; font-weight:normal">&#x25B6 </b> Microsoft Research</span>
+            </div> -->
+
+            <div class="column has-text-centered">
+              <div class="publication-links">
+                <span class="link-block">
+                  <a href="https://arxiv.org/abs/2304.08485" target="_blank"
+                    class="external-link button is-normal is-rounded is-dark">
+                    <span class="icon">
+                      <i class="ai ai-arxiv"></i>
+                    </span>
+                    <span>arXiv</span>
+                  </a>
+                </span>
+                <span class="link-block">
+                  <a href="https://github.com/Victorwz/MLM_Filter" target="_blank"
+                    class="external-link button is-normal is-rounded is-dark">
+                    <span class="icon">
+                      <i class="fab fa-github"></i>
+                    </span>
+                    <span>Code</span>
+                  </a>
+                </span>
+                <!-- <span class="link-block">
+                  <a href="https://llava.hliu.cc" target="_blank"
+                    class="external-link button is-normal is-rounded is-dark">
+                    <span class="icon">
+                      <i class="far fa-images"></i>
+                    </span>
+                    <span>Demo</span>
+                  </a>
+                </span> -->
+                <span class="link-block">
+                  <a href="https://huggingface.co/datasets/weizhiwang/mlm_filter_instructions" target="_blank"
+                    class="external-link button is-normal is-rounded is-dark">
+                    <span class="icon">
+                      <i class="fas fa-database"></i>
+                    </span>
+                    <span>Dataset</span>
+                  </a>
+                </span>
+                <span class="link-block">
+                  <a href="https://huggingface.co/weizhiwang/mlm-filter-llava-13b-gpt4v" target="_blank"
+                    class="external-link button is-normal is-rounded is-dark">
+                    <span class="icon">
+                      <i class="fas fa-share-square"></i>
+                    </span>
+                    <span>Model</span>
+                  </a>
+                </span>
+
+
+                
+
+                <!-- <span class="link-block">
+                <a href="#"
+                   class="external-link button is-normal is-rounded is-dark">
+                  <span class="icon">
+                    <i class="fab fa-youtube"></i>
+                  </span>
+                  <span>Video</span>
+                  </a>
+              </span> -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- <section class="hero teaser">
+    <div class="container is-max-desktop">
+      <div class="hero-body">
+        <h4 class="subtitle has-text-centered">
+          🔥<span style="color: #ff3860">[NEW!]</span> LLaVA-1.5 achieves SoTA on 11 benchmarks, with just simple modifications to the original LLaVA, utilizes all public data, completes training in ~1 day on a single 8-A100 node, and surpasses methods that use billion-scale data.
+          <br><br>
+          LLaVA represents a novel end-to-end trained large multimodal model that combines a vision encoder and Vicuna
+          for general-purpose visual and language understanding,
+          achieving impressive chat capabilities mimicking spirits of the multimodal GPT-4 and setting a new state-of-the-art accuracy on Science QA.
+        </h4>
+      </div>
+    </div>
+  </section> -->
+
+  <!-- <section class="section"  style="background-color:#efeff081">
+    <div class="container is-max-desktop" id="gradio">
+      <gradio-app src="https://llava.hliu.cc"></gradio-app>
+    </div>
+  </section> -->
+  
+
+
+  <section class="section"  style="background-color:#efeff081">
+    <div class="container is-max-desktop">
+      <!-- Abstract. -->
+      <div class="columns is-centered has-text-centered">
+        <div class="column is-four-fifths">
+          <h2 class="title is-4">Abstract</h2>
+          <div class="content has-text-justified">
+            <p>
+              We propose a novel framework for filtering image-text data by leveraging fine-tuned Multimodal Language Models (MLMs). Our approach outperforms predominant filtering methods (e.g. CLIPScore) via integrating the recent advances in MLMs. We design four distinct yet complementary metrics to holistically measure the quality of image-text data. A new pipeline is established to construct high-quality instruction data for fine-tuning MLMs as data filters. Comparing with CLIPScore, our MLM filters produce more precise and comprehensive scores that directly improve the quality of filtered data and boost the performance of pre-trained models. We achieve significant improvements over CLIPScore on popular foundation models (i.e. CLIP and BLIP2) and various downstream tasks. Our MLM filter can generalize to different models and tasks, and be used as a drop-in replacement for CLIPScore. An additional ablation study is provided to verify our design choices for the MLM filter.
+              </ol>  
+           </p>
+  
+          </div>
+        </div>
+      </div>
+        
+    </div>
+  </section>
+ 
+
+<section class="section">
+
+  <div class="columns is-centered has-text-centered">
+    <div class="column is-four-fifths">
+      <h2 class="title is-4"> Illustration of Fine-Tuned MLM as Image-Text Quality Scorer</h2>
+    </div>
+  </div>
+
+    <!-- <div class="columns is-centered has-text-centered">
+      <div class="column is-four-fifths">
+         <h2 class="title is-4">Visual Reasoning on two examples from <a href="https://arxiv.org/abs/2303.08774">OpenAI GPT-4 Technical Report</a></h2>
+      </div>
+      </div>   -->
+
+    <div class="columns is-centered has-text-centered">
+    <div class="column is-four-fifths">
+      <img id="teaser" width="35%" src="images/main_cases.png">
+      <figcaption>Figure 1. CLIPScore versus Image-Text Matching score generated by MLM Filter.
+      </figcaption>
+      <!-- <img id="teaser" width="38%" src="images/cmp_chicken_nugget.png"> -->
+    </div>
+    </div>  
+
+</section>
+
+
+<section class="section">
+
+  <div class="columns is-centered has-text-centered">
+    <div class="column is-four-fifths">
+      <h2 class="title is-4"> Fine-Tuning MLM as Image-Text Data Filter</h2>
+    </div>
+  </div>
+
+    <!-- <div class="columns is-centered has-text-centered">
+      <div class="column is-four-fifths">
+         <h2 class="title is-4">Visual Reasoning on two examples from <a href="https://arxiv.org/abs/2303.08774">OpenAI GPT-4 Technical Report</a></h2>
+      </div>
+      </div>   -->
+
+    <div class="columns is-centered has-text-centered">
+    <div class="column is-four-fifths">
+      <img id="teaser" width="50%" src="images/pipeline.jpg">
+      <figcaption>
+        Figure 2: Illustration of the pipeline of fine-tuning MLM Filter and employing it for data filtering
+      </figcaption>
+      
+      <!-- <img id="teaser" width="38%" src="images/cmp_chicken_nugget.png"> -->
+    </div>
+    </div>  
+    <div class="container is-max-desktop">
+      <!-- Abstract. -->
+      <div class="columns is-centered has-text-centered">
+        <div class="column is-four-fifths">
+          <div class="content has-text-justified">
+            <p>
+              We propose to adopt fine-tuned Multimodal Language Model as effective data filters to select high-quality image-text data to promote the VLM pre-training, which involves three stages: 
+              <ul type="1">
+                <li>Construct multimodal instruction tuning data on proposed quality scoring tasks to fine-tune MLM to realize accurate quality assessment;</li>
+                <li>Adopt the fine-tuned MLM Filter to generate quality scores for each data point in the data pool and then select the high-quality data;</li>
+                <li>Pre-train VLMs using the filtered dataset and evaluate the pre-trained VLMs on downstream tasks to demonstrate the effectiveness of the proposed filtering method. </li>
+              </ul>
+           </p>
+  
+          </div>
+        </div>
+      </div>
+        
+    </div>
+</section>
+
+<section class="section">
+  <!-- Results. -->
+  <div class="columns is-centered has-text-centered">
+    <div class="column is-four-fifths">
+      <h2 class="title is-4">Constructing Multimodal Instructons for Quality Scoring Tasks</h2>
+    </div>
+  </div>
+  <!-- </div> -->
+  <!--/ Results. -->    
+<div class="container is-max-desktop">
+
+  <div class="columns is-centered">
+    <div class="column is-four-fifths">
+      <div class="content has-text-justified">
+        <p>
+          <b>Defining Metrics for Image-Text Quality Assessment. </b>We defined four different data quality metrics for comprehensive quality assessment of image-text paired data:
+        <ul type="1">
+        <li><b>Image-Text Matching (ITM)</b>: the ITM metric focuses on evaluating whether the image caption accurately represents the main features and objects of the image and captures its primary theme. The fine-tuned MLM data filter can explicitly generate the ITM score on a scale of 100. </li> 
+        <li><b>Detail Fulfillment (ODF)</b>: the ODF metric focuses on evaluating whether the image caption provides detailed descriptions of objects that align with the image. Specifically, ODF assesses if the caption sufficiently describes the properties of the objects in the image, e.g. number, color, size, position, shape, etc. Compared with the ITM metric, the ODF metric focuses more on the fine-grained alignment between the detailed object properties in the image and the ones described in the corresponding caption. </li> 
+        <li><b>Caption Text Quality (CTQ)</b>: the CTQ metric focuses on evaluating the text quality of image caption based on the grammatical correctness, diversity of vocabulary (e.g. the range and uniqueness of words), fluency (\eg smoothness and natural flow of sentences), readability, length, and structure. </li> 
+        <li><b>Semantic Understanding (SU)</b>: the SU metric focuses on determining if the image caption provides additional semantic information that is not readily apparent just from the image itself. Such auxiliary semantic information can be (1) the professions of persons in the image; (2) the locations, addresses, festivals, country names, city names; (3) the names or entities of buildings, people, bird species, animal breeds, car models, engines in the image; (4) the social relationships between the people in the image, i.e. lovers, parent & child. We suggest that adopting SU metric for data filtering can select image-text pairs with auxiliary semantics, which can further enhance the commonsense reasoning capability of pre-trained VLMs. </li>
+        </ul>
+
+<!-- CSS Code: Place this code in the document's head (between the 'head' tags) -->
+<!-- <style>
+  table.GeneratedTable {
+    width: 100%;
+    background-color: #ffffff;
+    border-collapse: collapse;
+    border-width: 2px;
+    border-color: #c1c4c5;
+    border-style: solid;
+    color: #000000;
+  }
+  
+  table.GeneratedTable td, table.GeneratedTable th {
+    border-width: 2px;
+    border-color: #9b9d9e;
+    border-style: solid;
+    padding: 3px;
+  }
+  
+  table.GeneratedTable thead {
+    background-color: #6691ee;
+  }
+  </style> -->
+  
+  <!-- HTML Code: Place this code in the document's body (between the 'body' tags) where the table should appear -->
+  <!-- <div class="columns is-centered">
+  <div class="column is-four-fifths" width="80%">
+  <table class="GeneratedTable">
+    <thead>
+      <tr>
+        <th>Data file name</th>
+        <th>Data Resources</th>
+        <th>Sample Size</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a href="https://huggingface.co/datasets/liuhaotian/LLaVA-Instruct-150K/blob/main/conversation_58k.json">conversation_58k.json</a> </td>
+        <td>58K</td>
+      </tr>
+      <tr>
+        <td><a href="https://huggingface.co/datasets/liuhaotian/LLaVA-Instruct-150K/blob/main/detail_23k.json">detail_23k.json</a></td>
+        <td>20.5 MB</td>
+        <td>23K</td>
+      </tr>
+      <tr>
+        <td><a href="https://huggingface.co/datasets/liuhaotian/LLaVA-Instruct-150K/blob/main/complex_reasoning_77k.json">complex_reasoning_77k.json</a></td>
+        <td>79.6 MB</td>
+        <td>77K</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+</div> -->
+  <!-- Codes by Quackit.com -->
+  
+        </p>
+
+        <p>
+        <b>Other Data Construction Designs.</b> We use CC12M image-text data as the data resources and then sample 10k image-text pairs based on the clustered text embeddings of captions. We prompt the GPT-4/GPT-4V models using the following templates to construct initial 40k instruction data on 4 quality assessment tasks. Then we uniformly sample 4k instructions from initial 40k intructions based on the integer scores to avoid scoring bias brought by imbalanced fine-tuning. Additionally, we sample another 46k instruction data from LLaVA-665k multimodal instruction set to ensure the diversity of final 50k instruction dataset.
+          <pre><code>
+{image}
+Text Caption: {caption}
+
+Please evaluate if the provided text caption accurately represents the main features and objects of the image. 
+The caption doesn't need to detail every aspect of the image, but it should capture its primary theme. 
+Rate the overall quality of the text caption's match to the image on a scale of 1-100, considering the criteria mentioned.
+A higher score indicates higher level of image text matching. 
+Ensure that your scoring is nuanced and uses the entire range from 0 to 100, reflecting the subtle differences. 
+The score should be given as an integer, with each number between 0 and 100 considered as a potential score, avoiding the tendency to round to multiples of 10.  
+Please first output a single line containing the value indicating the scores. 
+In the subsequent line, please provide a comprehensive explanation of your evaluation, avoiding any potential bias.
+
+</code></pre>
+
+        </p>
+
+
+
+        <p>
+          <b>Instruction-Tune Multimodal Language Model as Data Filter.</b> We select LLaVA-13b as the foundation MLM for instruction-tuning on sampled 50k instructions. We directly take the pre-trained checkpoint after pre-training stage-1 of LLaVA and only change the instruction data in stage-2. 
+          Please check out our MLM-Filter model at
+          <a href="https://huggingface.co/weizhiwang/mlm-filter-llava-13b-gpt4v">[Model Zoo]</a>.
+        </p>
+      </div>
+      <!-- <centering>
+        <div style="text-align: center;">
+          <img id="teaser" width="70%" src="images/llava_arch.png">
+        </div>
+
+      
+      </centering>            -->
+    </div>
+  </div>
+
+
+</section>
+  
+
+
+<section class="section">
+  <!-- Results. -->
+  <div class="columns is-centered has-text-centered">
+    <div class="column is-four-fifths">
+      <h2 class="title is-4">
+        <!-- <img id="painting_icon" width="3%" src="https://cdn-icons-png.flaticon.com/512/3515/3515174.png">  -->
+        Results</h2>
+    </div>
+  </div>
+
+
+
+  <!-- </div> -->
+  <!--/ Results. -->    
+<div class="container is-max-desktop">
+
+
+  <!-- Grounedtext2img. -->
+  <div class="columns is-centered">
+    <div class="column is-four-fifths">
+      <h2 class="title is-5">DataComp Medium</h2>
+      <div style="text-align: center;">
+         <img id="painting_icon" width="90%" src="images/datacomp_medium.jpg">
+      </div>
+      <div style="padding-left: 25px;"><figcaption>Figure 3. Zero-shot performance of CLIP models pre-trained using baseline filtering methods and proposed MLM-FILTER on Medium scale pools of the DataComp benchmark. AND represents the combination of ITM and ODF metrics using AND operation.</figcaption></div>
+      
+      <br>
+      <div style="text-align: center;">
+        <img id="painting_icon" width="90%" src="images/datacomp_large.png">
+     </div>
+     <div style="padding-left: 25px;"><figcaption>Figure 4. Zero-shot performance of CLIP models pre-trained using baseline filtering methods and proposed MLM-FILTER on Large scale pools of the DataComp benchmark.</figcaption></div>
+     <br>
+
+     <div style="text-align: center;">
+      <img id="painting_icon" width="43%" src="images/human_alignment.png">
+    </div>
+    <div style="padding-left: 25px;"><figcaption>Figure 5. Pearson and Spearman correlations between human-labeled quality scores and scores generated by MLM-Filter and CLIP. Images are scored on a scale of 100 for our MLMFilter, while
+      CLIPScore is also normalized to the scale of 100. The ∗ denotes significant correlations at p < 0.05.</figcaption></div>
+    <br>
+    <p><b>The evaluation results demonstrate the prposed MLM-FILTER can work as more effective filtering method than CLIPScore filter.</b> Additionally, we can draw the following auxiliary conclusions from the results:  
+      <div class="content has-text-justified">
+    <ul type="1">
+      <li><b>MLM Filter learned from GPT-4V performs better on ImageNet related datasets than the MLM Filter learned from GPT-4.</b></li>
+      <li><b>The optimal filtering metric varies for fine-tuned MLM Filter learned from different teacher models.</b></li>
+      <li><b>Image-Text Matching is the best filtering metric for retrieval tasks. The proposed MLM Filter also achieves SOTA performance on retrieval tasks compared with other filtering baselines on DataComp Leaderboard.</b></li>
+      <li><b>Combing different quality metrics effectively filters and identifies image-text pairs of better quality. Combing ITM and ODF metrics for filtering yields the best average performance on DataComp Medium.</b></li>
+      <li><b>. Our proposed MLM-FILTER scores are significantly aligned and correlated with human quality scores, while CLIPScore does not demonstrate such correlations.</b></li>
+    </ul>
+  </div>
+    </p>         
+    </div>
+  </div>
+
+  <!-- Grounedtext2img. -->
+
+</section>
+
+
+
+
+
+
+  <section class="section" id="BibTeX">
+    <div class="container is-max-desktop content">
+      <div class="columns is-centered">
+        <div class="column is-four-fifths">
+      <h2 class="title">BibTeX</h2>
+      <pre><code>
+  @misc{wang2024fine,
+    author={Wang, Weizhi and Mirini, Khalil and Yang, Linjie and Kumar, Sateesh and Tian, Yu and Yan, Xifeng and Wang, Heng},
+    title={Fine-Tuned Multimodal Language Models Are High-Quality Image-Text Data Filters}, 
+    publisher={arXiv:2402.03744},
+    year={2024},
+  }
+  </code></pre>
+    </div>
+  </div>
+</div>
+  </section>
+  
+  <section class="section" id="Acknowledgement">
+    <div class="container is-max-desktop content">
+      <div class="columns is-centered">
+      <div class="column is-four-fifths">
+      <h2 class="title">Acknowledgement</h2>
+      <p>
+        This website is adapted from <a
+        href="https://github.com/nerfies/nerfies.github.io">Nerfies</a>, licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">Creative
+        Commons Attribution-ShareAlike 4.0 International License</a>. The foundation multimodal language models of our proposed MLM Filter are based on the OpenAI CLIP, Meta LLaMA-2 and its fine-tuned model Vicuna. We also thank LLaVA team to propose the great multimodal language model architecture as well as providing the codebase for further development.
+      </p>
+
+      <p>
+<b>Usage and License Notices</b>: The data, code and checkpoint is intended and licensed for research use only. They are also restricted to uses that follow the license agreement of CLIP,  LLaMA, Vicuna and GPT-4. The dataset is CC BY NC 4.0 (allowing only non-commercial use) and models trained using the dataset should not be used outside of research purposes.
+</p>
+
+  </div>
+  </div>
+  </div>
+  </section>
+
+  <!-- <script>
+    // Handle message showing
+    function createChatRow(sender, text, imageSrc) {
+      var article = document.createElement("article");
+      article.className = "media"
+
+      var figure = document.createElement("figure");
+      figure.className = "media-left";
+
+      var span = document.createElement("span");
+      span.className = "icon is-large";
+
+      var icon = document.createElement("i");
+      icon.className = "fas fas fa-2x" + (sender === "User" ? " fa-user " : sender === "LLaVA" ? " fa-robot" : "");
+
+      var media = document.createElement("div");
+      media.className = "media-content";
+
+      var content = document.createElement("div");
+      content.className = "content";
+
+      var para = document.createElement("p");
+
+      // wrap text in pre tag to preserve whitespace and line breaks
+      var pre_text = document.createElement("pre");
+      pre_text.style = "background-color: white; font-size: 18px; font-family: Arial; padding: 0; margin: 0; white-space: pre-wrap; word-wrap: break-word;";
+      var paraText = document.createTextNode(text);
+      pre_text.appendChild(paraText);
+
+      var strong = document.createElement("strong");
+      strong.innerHTML = sender;
+      var br = document.createElement("br");
+
+      para.appendChild(strong);
+      para.appendChild(br);
+      para.appendChild(pre_text);
+
+      // Add image if imageSrc is provided
+      if (imageSrc) {
+        var img = document.createElement("img");
+        img.src = imageSrc;
+        img.style = "max-width: 100%; max-height: 300px;"; // Adjust the style as needed
+        para.appendChild(img);
+      }
+
+      content.appendChild(para);
+      media.appendChild(content);
+      span.appendChild(icon);
+      figure.appendChild(span);
+      if (sender !== "Description") {
+        article.appendChild(figure);
+      };
+      article.appendChild(media);
+      return article;
+    }
+
+    function addMessageToChatHistory(sender, message, imageSrc) {
+      const chatHistory = document.querySelector('.chat-history');
+      const chatRow = createChatRow(sender, message, imageSrc);
+      chatHistory.appendChild(chatRow);
+      chatHistory.scrollTop = chatHistory.scrollHeight;
+    }
+
+    function clearChatHistory() {
+      const chatHistory = document.querySelector('.chat-history');
+      chatHistory.innerHTML = "";
+    }
+
+    // 
+    const conversations = [
+      {
+        "description": "monalisa",
+        "turns": [
+          // ["Description", "Please read the description and answer the question."],
+          ["User", "", "/static/images/monalisa.jpg"],
+          ["User", "Do you know who drew this painting?​"],
+          ["LLaVA",
+            "The painting depicts a woman, commonly believed to be Mona Lisa, the famous artwork by Leonardo da Vinci. " +
+            "It is a portrait painting that showcases the woman's enigmatic smile and has become one of the most famous and iconic art pieces in the world. " +
+            "The original work is displayed in the Louvre Museum in Paris, and it is known for its intricate details, use of oil paint, and the artist's innovative techniques that contributed to its enduring appeal and mystery.​​"
+          ]
+        ]
+      },
+      {
+        "description": "monalisa with dog head",
+        "turns": [
+          ["User", "", "/static/images/monalisa-fun.jpg"],
+          ["User", "Do you know who drew this painting?​"],
+          ["LLaVA", "The painting depicts a dog in a humorous situation, where it appears to be wearing a woman's dress and standing in front of a landscape. Although the artist of the painting is not explicitly identified, it could be a reference to the famous artist Da Vinci, known for his artistic works, including the Mona Lisa. The painting is likely a creative and comical take on the traditional portrait style, replacing a human figure with a dog dressed in a woman's clothing, making it an interesting and amusing visual piece.​"]
+        ]
+      },
+      {
+        "description": "Titanic Rose and Jack",
+        "turns": [
+          ["User", "", "/static/images/titanic.jpg"],
+          ["User", "What's the ending of this movie?​​"],
+          ["LLaVA", "​In the image, a young woman is leaning on a man in front of a beautiful sunset, with both of them standing on a boat. They appear to be enjoying a romantic moment together. The scene suggests that they could be depicted as the characters Jack and Rose from the popular movie Titanic. In the movie, their romance blossoms aboard the fictional ocean liner Titanic, with the pair ultimately sharing a passionate kiss as the ship sinks into the ocean. The ending of the movie is known for its emotional and heartfelt scenes, where the characters are forced to say goodbye to each other as they are separated by the sinking ship. The image evokes a sense of romance and nostalgia, paying tribute to the iconic love story portrayed in the movie Titanic.​"]
+        ]
+      },
+      {
+        "description": "Fridge",
+        "turns": [
+          ["User", "", "/static/images/fridge.jpg"],
+          ["User", "What are the meals that I can cook with these?​​"],
+          ["LLaVA", "With the variety of food items stored in the refrigerator, you can prepare several meals. For example, you can create a fruit salad using the strawberries, blueberries, and carrots. Additionally, you can make a delicious smoothie using the fruits and vegetables, which would be a healthy and nutritious snack or breakfast option. The milk and eggs can be used to create various dishes, such as a milk-based smoothie, a baked casserole, or scrambled eggs. The juice can also be used to make a fresh fruit and juice mix or as a refreshing homemade popsicle. The possibilities are vast, and the meals you can create will depend on your preferences and dietary needs.​​"],
+          ["User", "I would like to do the fruit salad.  Show me the recipe.​"],
+          ["LLaVA",
+            `Certainly! Here's a simple fruit salad recipe using the items in your refrigerator:​
+
+Ingredients:​
+- 2 cups fresh strawberries, sliced​
+- 1 cup fresh blueberries​
+- 1 large carrot, grated​
+- Juice of half a lemon​
+- A handful of chopped fresh parsley or mint​
+- A few ice cubes​
+- Optional: honey or maple syrup (adjust to taste)​
+
+Instructions:​
+1. In a large bowl, combine the sliced strawberries, blueberries, and carrot. Gently toss them together to mix.​
+2. Drizzle the juice of half a lemon over the fruit and vegetables to prevent them from oxidizing and add a refreshing citrus flavor.​
+3. Sprinkle the chopped fresh parsley or mint over the fruit and gently toss once more.​
+4. If desired, add a drizzle of honey or maple syrup for a touch of sweetness. Adjust the amount according to your taste preferences.​
+5. Cover the bowl and refrigerate the fruit salad for at least 30 minutes or up to a few hours. This allows the flavors to meld and creates a more refreshing salad.​
+6. Serve the fruit salad in cups or bowls, garnished with a sprinkle of fresh parsley or mint, if desired.​
+
+This fruit salad recipe is perfect for a healthy snack or side dish, and with the variety of ingredients available in your refrigerator, it should be easy to put together quickly.`]]
+      },
+      {
+        "description": "Beautiful View",
+        "turns": [
+          ["User", "", "/static/images/view.jpg"],
+          ["User", "What are the things I should be cautious about when I visit here?​​"],
+          ["LLaVA", "When visiting this peaceful location with a pier extending over a serene lake, surrounded by mountains, there are several things to be cautious about. First, pay attention to the weather conditions, as sudden changes in weather, especially strong winds or storms, can cause the water to become rough and pose risks to the stability of the pier. Second, be mindful of the structural integrity of the pier; avoid overloading it with too many people or excessive weight, as this could potentially damage the pier or cause it to collapse. Additionally, be aware of the surrounding wildlife and respect their space; do not harm or disturb them in any way. Finally, if you decide to go fishing, ensure that you adhere to any local fishing regulations and use appropriate fishing techniques to keep the lake ecosystem healthy and maintain the balance of the food chain.​​"],
+          ["User", "Compose an engaging travel blog post about my trip to this place, highlighting the beautiful sceneries, joyful experiences, and include possible anecdotes.​​"],
+          ["LLaVA",
+            `Traveling to this picturesque location with a serene lake and mountains in the background was a refreshing and rejuvenating experience. The pier extending over the calm water provided an excellent vantage point from which to appreciate the breathtaking scenery. As I stood on the pier, I couldn't help but feel a deep connection with nature, taking a moment to soak in the peaceful atmosphere.​
+
+One of the highlights of my trip was undoubtedly the fishing experience. The area is teeming with life, and I was thrilled to land a sizeable catch, despite the modest size of the lake. The joy of fishing in such a beautiful setting was truly rewarding, and it allowed me to take a break from my busy life and truly immerse myself in the tranquility of nature.​
+
+While exploring the surrounding area, I came across a family of birds that had built a nest close to the pier, adding to the charm of the location. Interacting with the wildlife and observing their behavior was an enriching experience that I'll cherish for years to come.​
+
+In conclusion, this idyllic destination provided me with an opportunity to unwind and recharge, surrounded by mesmerizing natural beauty and the gentle sounds of water and wildlife. If you're looking for a serene escape from the hustle and bustle of everyday life, this pier overlooking the lake is the perfect place to find solace and reconnect with nature.`
+          ]
+        ]
+      },
+    ];
+
+    // The current image index
+    let currentIndex = 0;
+
+    // The function to update the displayed chat history
+    function update_dialog_demo() {
+      // Clear the chat history
+      clearChatHistory();
+
+      for (let i = 0; i < conversations[currentIndex].turns.length; i++) {
+        if (conversations[currentIndex].turns[i].length == 2) {
+          addMessageToChatHistory(conversations[currentIndex].turns[i][0], conversations[currentIndex].turns[i][1]);
+        }
+        else {
+          addMessageToChatHistory(conversations[currentIndex].turns[i][0], conversations[currentIndex].turns[i][1], conversations[currentIndex].turns[i][2]);
+        }
+      }
+
+      // scroll to the top of the chat history
+      document.querySelector('.chat-history').scrollTop = 0;
+    }
+
+    // Initialize the displayed image
+    update_dialog_demo();
+
+    // Event listeners for the buttons
+    document.getElementById('prev-question').addEventListener('click', () => {
+      currentIndex = (currentIndex - 1 + conversations.length) % conversations.length;
+      update_dialog_demo();
+    });
+
+    document.getElementById('next-question').addEventListener('click', () => {
+      currentIndex = (currentIndex + 1) % conversations.length;
+      update_dialog_demo();
+    });
+
+
+  </script> -->
+
+</body>
+
+</html>
